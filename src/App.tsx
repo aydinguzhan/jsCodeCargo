@@ -1,34 +1,37 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/electron-vite.animate.svg";
 import "./App.css";
 
+import TitleBar from "./components/layout/TitleBar";
+import ActivityBar from "./components/layout/ActivityBar";
+import Sidebar from "./components/layout/Sidebar";
+import Editor from "./components/editor/Editor";
+import StatusBar from "./components/layout/StatusBar";
+import MenuBar from "./components/layout/MenuBar";
+import { useState } from "react";
+
 function App() {
-  const [count, setCount] = useState(0);
+  const [terminalOpen, setTerminalOpen] = useState<boolean>(false);
 
   return (
-    <>
-      <div className="bg-red-500">
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <MenuBar onToggleTerminal={() => setTerminalOpen((value) => !value)} />
+
+      <TitleBar />
+
+      <div className="flex min-h-0 flex-1">
+        <ActivityBar />
+
+        <Sidebar />
+
+        <main className="min-w-0 flex-1">
+          <Editor
+            terminalOpen={terminalOpen}
+            handleTerminalClose={() => setTerminalOpen((value) => !value)}
+          />
+        </main>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+      <StatusBar />
+    </div>
   );
 }
 

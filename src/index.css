@@ -1,1 +1,132 @@
 @import "tailwindcss";
+
+/* =========================================
+   DARK MODE
+========================================= */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* =========================================
+   LIGHT THEME
+========================================= */
+
+:root {
+  --background: #e6f0f3;
+  --surface: #ffffff;
+  --surface-soft: #d6e7ec;
+
+  --foreground: #112e81;
+  --foreground-muted: #52627a;
+
+  --primary: #4647ae;
+  --primary-hover: #112e81;
+  --primary-foreground: #ffffff;
+
+  --accent: #4382df;
+  --accent-soft: #aacdd6;
+
+  --border: #aacdd6;
+
+  --input: #ffffff;
+  --input-border: #aacdd6;
+
+  --card: #ffffff;
+  --card-foreground: #112e81;
+}
+
+
+/* =========================================
+   DARK THEME
+========================================= */
+
+.dark {
+  --background: #0f1a20;
+  --surface: #433751;
+  --surface-soft: rgb(30, 48, 56);
+
+  --foreground: #f0e3e3;
+  --foreground-muted: #b8c4cc;
+
+  --primary: #748b9c;
+  --primary-hover: #f0e3e3;
+  --primary-foreground: #243f50;
+
+  --accent: #4382df;
+  --accent-soft: #526f80;
+
+  --border: #526f80;
+
+  --input: #2d4b5c;
+  --input-border: #748b9c;
+
+  --card: #433751;
+  --card-foreground: #f0e3e3;
+}
+
+
+/* =========================================
+   TAILWIND COLORS
+========================================= */
+
+@theme inline {
+  --color-background: var(--background);
+
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-border: var(--border);
+
+  --color-input: var(--input);
+  --color-input-border: var(--input-border);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+}
+
+
+/* =========================================
+   BASE
+========================================= */
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@layer components {
+  .menu-item {
+    @apply flex w-full items-center justify-between gap-6 rounded-sm px-3 py-1.5 text-left text-xs text-foreground-muted transition-colors;
+  }
+
+  .menu-item:hover {
+    @apply bg-surface-soft text-foreground;
+  }
+}
