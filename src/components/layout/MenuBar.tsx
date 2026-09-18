@@ -1,12 +1,12 @@
 import { useState } from "react";
 import Menu from "./Menu";
+import { useUiStore } from "../../stores/uiStore";
+import { useEditorStore } from "../../stores/editorStore";
 
-interface MenuBarProps {
-  onToggleTerminal: () => void;
-}
-
-export default function MenuBar({ onToggleTerminal }: MenuBarProps) {
+export default function MenuBar() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const toggleTerminal = useUiStore((state) => state.toggleTerminal);
+  const createNewFile = useEditorStore((state) => state.createNewFile);
 
   return (
     <div
@@ -28,7 +28,7 @@ export default function MenuBar({ onToggleTerminal }: MenuBarProps) {
         active={activeMenu === "file"}
         onOpen={() => setActiveMenu("file")}
       >
-        <button className="menu-item">
+        <button className="menu-item" onClick={createNewFile}>
           New File
           <span>⌘N</span>
         </button>
@@ -72,7 +72,7 @@ export default function MenuBar({ onToggleTerminal }: MenuBarProps) {
           <span>⌘⇧E</span>
         </button>
 
-        <button className="menu-item" onClick={onToggleTerminal}>
+        <button className="menu-item" onClick={toggleTerminal}>
           Terminal
           <span>⌘J</span>
         </button>
@@ -83,7 +83,7 @@ export default function MenuBar({ onToggleTerminal }: MenuBarProps) {
         active={activeMenu === "terminal"}
         onOpen={() => setActiveMenu("terminal")}
       >
-        <button className="menu-item" onClick={onToggleTerminal}>
+        <button className="menu-item" onClick={toggleTerminal}>
           Toggle Terminal
           <span>⌘J</span>
         </button>

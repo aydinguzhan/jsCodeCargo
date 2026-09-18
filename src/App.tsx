@@ -6,14 +6,14 @@ import Sidebar from "./components/layout/Sidebar";
 import Editor from "./components/editor/Editor";
 import StatusBar from "./components/layout/StatusBar";
 import MenuBar from "./components/layout/MenuBar";
-import { useState } from "react";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 
 function App() {
-  const [terminalOpen, setTerminalOpen] = useState<boolean>(false);
+  useGlobalShortcuts();
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <MenuBar onToggleTerminal={() => setTerminalOpen((value) => !value)} />
+      <MenuBar />
 
       <TitleBar />
 
@@ -23,10 +23,7 @@ function App() {
         <Sidebar />
 
         <main className="min-w-0 flex-1">
-          <Editor
-            terminalOpen={terminalOpen}
-            handleTerminalClose={() => setTerminalOpen((value) => !value)}
-          />
+          <Editor />
         </main>
       </div>
 

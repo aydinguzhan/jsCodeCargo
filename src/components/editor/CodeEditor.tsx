@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+import { useThemeStore } from "../../stores/themeStore";
 type Props = {
   language?: string;
   content: string;
@@ -11,6 +12,8 @@ export default function CodeEditor({
   content,
   handleChange,
 }: Props) {
+  const theme = useThemeStore((state) => state.theme);
+
   return (
     <Editor
       height={"100%"}
@@ -18,7 +21,7 @@ export default function CodeEditor({
       defaultLanguage={language}
       defaultValue={content}
       onChange={handleChange}
-      theme="vs-dark"
+      theme={theme === "dark" ? "vs-dark" : "light"}
       className="bg-surface-soft"
       options={{
         minimap: {

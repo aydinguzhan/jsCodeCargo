@@ -1,9 +1,10 @@
 import { Search } from "lucide-react";
-import { useState } from "react";
 import CommandPalette from "./CommandPalette";
+import { useUiStore } from "../../stores/uiStore";
 
 export default function CommandBar() {
-  const [open, setOpen] = useState(false);
+  const open = useUiStore((state) => state.commandPaletteOpen);
+  const setOpen = useUiStore((state) => state.setCommandPaletteOpen);
 
   return (
     <div className="relative w-full max-w-xl">

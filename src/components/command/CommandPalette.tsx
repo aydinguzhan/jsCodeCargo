@@ -36,10 +36,23 @@ const commands = [
 
 export default function CommandPalette({ onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
+  const [activeCommandIndex, setActiveCommandIndex] = useState(0);
 
   const filteredCommands = commands.filter((command) =>
     command.title.toLowerCase().includes(query.toLowerCase()),
   );
+
+  const moveActiveCommand = (direction: 1 | -1) => {
+    if (filteredCommands.length === 0) {
+      return;
+    }
+
+    setActiveCommandIndex(
+      (currentIndex) =>
+        (currentIndex + direction + filteredCommands.length) %
+        filteredCommands.length,
+    );
+  };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -90,7 +103,21 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
           <input
             autoFocus
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveCommandIndex(0);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                moveActiveCommand(1);
+              }
+
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                moveActiveCommand(-1);
+              }
+            }}
             placeholder="Search files, commands..."
             className="
               h-12
@@ -120,13 +147,16 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
         </div>
 
         <div className="max-h-96 overflow-y-auto p-2">
-          {filteredCommands.map((command) => {
+          {filteredCommands.map((command, index) => {
             const Icon = command.icon;
+            const isActive = index === activeCommandIndex;
 
             return (
               <button
                 key={command.id}
-                className="
+                type="button"
+                onMouseEnter={() => setActiveCommandIndex(index)}
+                className={`
                   flex
                   w-full
                   items-center
@@ -137,7 +167,10 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
                   text-left
                   transition
                   hover:bg-surface-soft
-                "
+                  focus:outline-none
+                  ${isActive ? "bg-surface-soft" : ""}
+                `}
+                aria-current={isActive || undefined}
               >
                 <Icon size={17} className="shrink-0 text-foreground-muted" />
 

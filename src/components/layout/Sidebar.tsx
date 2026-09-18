@@ -11,7 +11,7 @@ export default function Sidebar() {
         md:block
       "
     >
-      <div className="border-b border-border px-4 py-3">
+      <div className="border-b border-border px-4 py-2">
         <span className="text-xs font-semibold uppercase text-foreground-muted">
           Explorer
         </span>

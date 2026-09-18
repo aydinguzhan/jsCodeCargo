@@ -1,18 +1,10 @@
 import { Moon, Sun } from "lucide-react";
-import { useState } from "react";
+import { useThemeStore } from "../../stores/themeStore";
 
 export default function ThemeSwitch() {
-  const [isDark, setIsDark] = useState(
-    document.documentElement.classList.contains("dark"),
-  );
-
-  const toggleTheme = () => {
-    const nextTheme = !isDark;
-
-    setIsDark(nextTheme);
-
-    document.documentElement.classList.toggle("dark", nextTheme);
-  };
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const isDark = theme === "dark";
 
   return (
     <button
