@@ -3,10 +3,12 @@
 import { useState } from "react";
 type Props = {
   onClose: () => void;
+  onReset?: () => void;
+  outPut: string[];
 };
-export default function Terminal({ onClose }: Props) {
+export default function Terminal({ onClose, outPut, onReset }: Props) {
   const [command, setCommand] = useState("");
-  const [output, setOutput] = useState<string[]>([]);
+  const [output, setOutput] = useState<string[]>(outPut);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -16,7 +18,10 @@ export default function Terminal({ onClose }: Props) {
     setOutput((current) => [...current, `$ ${command}`]);
 
     setCommand("");
-    if (command === "clear") setOutput([]);
+    if (command === "clear") {
+      setOutput([]);
+      onReset?.();
+    }
   };
 
   return (

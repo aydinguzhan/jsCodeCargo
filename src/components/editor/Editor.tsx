@@ -4,8 +4,10 @@ import Terminal from "../terminal/Terminal";
 import EditorEmptyState from "../layout/EditorEmptyState";
 import { useUiStore } from "../../stores/uiStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useState } from "react";
 
 export default function Editor() {
+  const [codeOutput, setCodeOutPut] = useState<string[]>([]);
   const tabs = useEditorStore((state) => state.tabs);
   const activeTabId = useEditorStore((state) => state.activeTabId);
   const selectTab = useEditorStore((state) => state.selectTab);
@@ -16,15 +18,22 @@ export default function Editor() {
   const createNewFile = useEditorStore((state) => state.createNewFile);
   const terminalOpen = useUiStore((state) => state.terminalOpen);
   const setTerminalOpen = useUiStore((state) => state.setTerminalOpen);
-  // Aktif dosyayı bul
+
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
-  const handleRun = () => {
+  const handleRun = async () => {
     if (!activeTab) {
       return;
     }
-
-    console.log("Running:", activeTab.name);
-    console.log(activeTab.content);
+    const result = await window.ipcRenderer.invoke(
+      "terminal:run",
+      `${activeTab.content}`,
+    );
+    setCodeOutPut((prev) => {
+      return [...prev, result?.stdout ?? result?.stdin];
+    });
+  };
+  const handleClearTerminal = () => {
+    setCodeOutPut([]);
   };
   const handleChangeTabContent = (value: string | undefined) => {
     if (value === undefined) {
@@ -60,7 +69,14 @@ export default function Editor() {
           <EditorEmptyState />
         )}
       </div>
-      {terminalOpen && <Terminal onClose={() => setTerminalOpen(false)} />}
+      {terminalOpen && (
+        <Terminal
+          key={codeOutput.length}
+          onClose={() => setTerminalOpen(false)}
+          outPut={codeOutput}
+          onReset={handleClearTerminal}
+        />
+      )}
     </div>
   );
 }
