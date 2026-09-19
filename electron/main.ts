@@ -4,6 +4,14 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import dotenv from "dotenv";
 import { terminalRun } from './terminal';
+import {
+  createNewFile,
+  openFile,
+  openWorkspace,
+  readFile,
+  readWorkspaceDirectory,
+  writeFile,
+} from './fs';
 
 dotenv.config();
 // const require = createRequire(import.meta.url)
@@ -36,7 +44,17 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
-  ipcMain.handle("terminal:run", terminalRun)
+  ipcMain.handle("terminal:run", terminalRun);
+  ipcMain.handle("create:file", createNewFile);
+  ipcMain.handle("write:file", (_, filePath: string, content: string) =>
+    writeFile(filePath, content),
+  );
+  ipcMain.handle("workspace:open", openWorkspace);
+  ipcMain.handle("workspace:read-directory", (_, directoryPath: string) =>
+    readWorkspaceDirectory(directoryPath),
+  );
+  ipcMain.handle("file:open", openFile);
+  ipcMain.handle("file:read", (_, filePath: string) => readFile(filePath));
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {

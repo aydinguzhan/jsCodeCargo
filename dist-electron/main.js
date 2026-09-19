@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { dialog, app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "node:url";
 import path$1 from "node:path";
 import require$$0 from "fs";
@@ -6,6 +6,7 @@ import require$$1 from "path";
 import require$$2 from "os";
 import require$$3 from "crypto";
 import { spawn } from "node:child_process";
+import fs$1 from "node:fs/promises";
 function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
@@ -348,6 +349,102 @@ const terminalRun = (_, code) => {
     });
   });
 };
+async function readDirectory(directoryPath) {
+  const entries = await fs$1.readdir(directoryPath, { withFileTypes: true });
+  return entries.map((entry) => ({
+    name: entry.name,
+    path: path$1.join(directoryPath, entry.name),
+    isDirectory: entry.isDirectory()
+  })).sort((left, right) => {
+    if (left.isDirectory !== right.isDirectory) {
+      return left.isDirectory ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+}
+async function openWorkspace() {
+  try {
+    const result = await dialog.showOpenDialog({
+      title: "Open Folder",
+      properties: ["openDirectory"]
+    });
+    const rootPath = result.filePaths[0];
+    if (result.canceled || !rootPath) {
+      return { success: false, canceled: true };
+    }
+    return {
+      success: true,
+      rootPath,
+      rootName: path$1.basename(rootPath),
+      entries: await readDirectory(rootPath)
+    };
+  } catch (error) {
+    console.error("Could not open workspace:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+async function readWorkspaceDirectory(directoryPath) {
+  return readDirectory(directoryPath);
+}
+async function readFile(filePath) {
+  try {
+    return {
+      success: true,
+      filePath,
+      name: path$1.basename(filePath),
+      content: await fs$1.readFile(filePath, "utf-8")
+    };
+  } catch (error) {
+    console.error("Could not read file:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+async function openFile() {
+  const result = await dialog.showOpenDialog({
+    title: "Open File",
+    properties: ["openFile"]
+  });
+  const filePath = result.filePaths[0];
+  if (result.canceled || !filePath) {
+    return { success: false, canceled: true };
+  }
+  return readFile(filePath);
+}
+async function createNewFile(_, name, extension, content) {
+  try {
+    const result = await dialog.showSaveDialog({
+      title: "Create new File",
+      defaultPath: `${name}.${extension}`
+    });
+    if (result.canceled || !result.filePath) {
+      return {
+        success: false,
+        canceled: true
+      };
+    }
+    const filePath = result.filePath;
+    await writeFile(result.filePath, content ?? "");
+    return {
+      success: true,
+      filePath
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+async function writeFile(filePath, content) {
+  await fs$1.writeFile(filePath, content, "utf-8");
+}
 dotenv.config();
 const __dirname$1 = path$1.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path$1.join(__dirname$1, "..");
@@ -364,6 +461,18 @@ function createWindow() {
     }
   });
   ipcMain.handle("terminal:run", terminalRun);
+  ipcMain.handle("create:file", createNewFile);
+  ipcMain.handle(
+    "write:file",
+    (_, filePath, content) => writeFile(filePath, content)
+  );
+  ipcMain.handle("workspace:open", openWorkspace);
+  ipcMain.handle(
+    "workspace:read-directory",
+    (_, directoryPath) => readWorkspaceDirectory(directoryPath)
+  );
+  ipcMain.handle("file:open", openFile);
+  ipcMain.handle("file:read", (_, filePath) => readFile(filePath));
   win.webContents.on("did-finish-load", () => {
     win == null ? void 0 : win.webContents.send("main-process-message", "Merhaba");
   });

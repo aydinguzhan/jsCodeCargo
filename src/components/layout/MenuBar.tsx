@@ -7,6 +7,9 @@ export default function MenuBar() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const toggleTerminal = useUiStore((state) => state.toggleTerminal);
   const createNewFile = useEditorStore((state) => state.createNewFile);
+  const openFile = useEditorStore((state) => state.openFile);
+  const saveActiveFile = useEditorStore((state) => state.saveActiveFile);
+  const hasActiveTab = useEditorStore((state) => state.activeTabId !== null);
 
   return (
     <div
@@ -33,14 +36,18 @@ export default function MenuBar() {
           <span>⌘N</span>
         </button>
 
-        <button className="menu-item">
+        <button className="menu-item" onClick={() => void openFile()}>
           Open File
           <span>⌘O</span>
         </button>
 
         <div className="my-1 border-t border-border" />
 
-        <button className="menu-item">
+        <button
+          className="menu-item disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!hasActiveTab}
+          onClick={() => void saveActiveFile()}
+        >
           Save
           <span>⌘S</span>
         </button>

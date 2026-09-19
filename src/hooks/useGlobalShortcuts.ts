@@ -26,6 +26,19 @@ function runShortcut(id: ShortcutId) {
     case "newFile":
       useEditorStore.getState().createNewFile();
       return true;
+    case "openFile":
+      void useEditorStore.getState().openFile();
+      return true;
+    case "save":
+      {
+        const editor = useEditorStore.getState();
+        if (!editor.activeTabId) {
+          return false;
+        }
+
+        void editor.saveActiveFile();
+      }
+      return true;
     case "closeTab":
       {
         const editor = useEditorStore.getState();
@@ -37,7 +50,6 @@ function runShortcut(id: ShortcutId) {
       }
       return true;
     default:
-      // Dosya işlemleri editor/workspace store eklendiğinde burada bağlanacak.
       return false;
   }
 }
