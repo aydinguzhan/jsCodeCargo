@@ -77,7 +77,7 @@ function isWorkspaceRelativeFile(workspaceRoot: string, filePath: string) {
 
 function createWindow() {
   const newWindow = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC, 'app-icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -218,6 +218,9 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") {
+    app.dock.setIcon(path.join(process.env.VITE_PUBLIC, "app-icon.png"));
+  }
   registerIpcHandlers()
   createWindow()
 })
