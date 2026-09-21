@@ -28,6 +28,12 @@ function persistTheme(theme: Theme) {
   } catch {
     // localStorage erişimi engellendiğinde tema yalnızca mevcut oturumda kalır.
   }
+
+  if ("ipcRenderer" in window) {
+    void window.ipcRenderer.invoke("settings:theme:set", theme).catch(() => {
+      // Electron ayar dosyası erişilemezse localStorage yedek olmaya devam eder.
+    });
+  }
 }
 
 type ThemeState = {
@@ -52,6 +58,19 @@ export const useThemeStore = create<ThemeState>((set) => ({
     }),
 }));
 
-export function initializeTheme() {
-  applyTheme(useThemeStore.getState().theme);
+export async function initializeTheme() {
+  let theme = useThemeStore.getState().theme;
+  if ("ipcRenderer" in window) {
+    try {
+      const savedTheme = await window.ipcRenderer.invoke("settings:theme:get");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        theme = savedTheme;
+        useThemeStore.setState({ theme });
+        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+      }
+    } catch {
+      // localStorage'daki tema ile devam edilir.
+    }
+  }
+  applyTheme(theme);
 }

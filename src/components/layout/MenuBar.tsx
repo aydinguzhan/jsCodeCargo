@@ -2,12 +2,15 @@ import { useState } from "react";
 import Menu from "./Menu";
 import { useUiStore } from "../../stores/uiStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useWorkspaceStore } from "../../stores/workspaceStore";
 
 export default function MenuBar() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const toggleTerminal = useUiStore((state) => state.toggleTerminal);
   const createNewFile = useEditorStore((state) => state.createNewFile);
+  const createNewWindow = () => void window.appWindow.create();
   const openFile = useEditorStore((state) => state.openFile);
+  const openWorkspace = useWorkspaceStore((state) => state.openWorkspace);
   const saveActiveFile = useEditorStore((state) => state.saveActiveFile);
   const hasActiveTab = useEditorStore((state) => state.activeTabId !== null);
 
@@ -36,9 +39,19 @@ export default function MenuBar() {
           <span>⌘N</span>
         </button>
 
+        <button className="menu-item" onClick={createNewWindow}>
+          New Window
+          <span>⇧⌘N</span>
+        </button>
+
         <button className="menu-item" onClick={() => void openFile()}>
           Open File
           <span>⌘O</span>
+        </button>
+
+        <button className="menu-item" onClick={() => void openWorkspace()}>
+          Open Folder
+          <span>⌘⇧O</span>
         </button>
 
         <div className="my-1 border-t border-border" />

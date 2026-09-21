@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { type Shortcut, type ShortcutId, useShortcutStore } from "../stores/shortcutStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useUiStore } from "../stores/uiStore";
+import { useWorkspaceStore } from "../stores/workspaceStore";
 
 function matchesShortcut(event: KeyboardEvent, shortcut: Shortcut) {
   return (
@@ -28,6 +29,9 @@ function runShortcut(id: ShortcutId) {
       return true;
     case "openFile":
       void useEditorStore.getState().openFile();
+      return true;
+    case "openFolder":
+      void useWorkspaceStore.getState().openWorkspace();
       return true;
     case "save":
       {

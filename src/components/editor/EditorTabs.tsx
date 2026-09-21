@@ -81,7 +81,7 @@ export default function EditorTabs({
           hover:text-foreground
           hover:cursor-pointer
         "
-        title="New file"
+        title="Run active file"
       >
         <Play size={16} className="fill-green-600" />
       </button>

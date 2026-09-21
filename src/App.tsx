@@ -7,9 +7,13 @@ import Editor from "./components/editor/Editor";
 import StatusBar from "./components/layout/StatusBar";
 import MenuBar from "./components/layout/MenuBar";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { useUiStore } from "./stores/uiStore";
+import GitGraph from "./components/git/GitGraph";
+import ToastViewport from "./components/ui/ToastViewport";
 
 function App() {
   useGlobalShortcuts();
+  const sidebarView = useUiStore((state) => state.sidebarView);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -23,11 +27,12 @@ function App() {
         <Sidebar />
 
         <main className="min-w-0 flex-1">
-          <Editor />
+          {sidebarView === "git" ? <GitGraph /> : <Editor />}
         </main>
       </div>
 
       <StatusBar />
+      <ToastViewport />
     </div>
   );
 }

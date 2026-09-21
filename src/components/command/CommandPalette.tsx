@@ -1,5 +1,8 @@
-import { FileCode, Folder, Settings, Sun, X } from "lucide-react";
+import { FileCode, Folder, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useEditorStore } from "../../stores/editorStore";
+import { useThemeStore } from "../../stores/themeStore";
+import { useWorkspaceStore } from "../../stores/workspaceStore";
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -21,12 +24,6 @@ const commands = [
     shortcut: "⌘ K O",
   },
   {
-    id: "settings",
-    title: "Open Settings",
-    description: "Configure editor settings",
-    icon: Settings,
-  },
-  {
     id: "theme",
     title: "Toggle Theme",
     description: "Switch between light and dark theme",
@@ -36,23 +33,82 @@ const commands = [
 
 export default function CommandPalette({ onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
-  const [activeCommandIndex, setActiveCommandIndex] = useState(0);
+  const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>([]);
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
+  const rootPath = useWorkspaceStore((state) => state.rootPath);
+  const rootName = useWorkspaceStore((state) => state.rootName);
+  const openWorkspace = useWorkspaceStore((state) => state.openWorkspace);
+  const openFile = useEditorStore((state) => state.openFile);
+  const openFileFromPath = useEditorStore((state) => state.openFileFromPath);
 
   const filteredCommands = commands.filter((command) =>
     command.title.toLowerCase().includes(query.toLowerCase()),
   );
+  const results: PaletteResult[] = [
+    ...workspaceFiles.map((file) => ({ type: "file" as const, file })),
+    ...filteredCommands.map((command) => ({ type: "command" as const, command })),
+  ];
 
-  const moveActiveCommand = (direction: 1 | -1) => {
-    if (filteredCommands.length === 0) {
+  const moveActiveResult = (direction: 1 | -1) => {
+    if (results.length === 0) {
       return;
     }
 
-    setActiveCommandIndex(
+    setActiveResultIndex(
       (currentIndex) =>
-        (currentIndex + direction + filteredCommands.length) %
-        filteredCommands.length,
+        (currentIndex + direction + results.length) % results.length,
     );
   };
+
+  const runCommand = async (id: string) => {
+    if (id === "open-file") {
+      await openFile();
+    } else if (id === "open-folder") {
+      await openWorkspace();
+    } else if (id === "theme") {
+      useThemeStore.getState().toggleTheme();
+    }
+    onClose();
+  };
+
+  const openResult = (result: PaletteResult | undefined) => {
+    if (!result) {
+      return;
+    }
+
+    if (result.type === "file") {
+      void openFileFromPath(result.file.path);
+      onClose();
+      return;
+    }
+
+    void runCommand(result.command.id);
+  };
+
+  useEffect(() => {
+    if (!rootPath) {
+      setWorkspaceFiles([]);
+      return;
+    }
+
+    let current = true;
+    void window.ipcRenderer
+      .invoke("workspace:find-files", rootPath, query)
+      .then((files: WorkspaceFile[]) => {
+        if (current) {
+          setWorkspaceFiles(files);
+        }
+      })
+      .catch(() => current && setWorkspaceFiles([]));
+
+    return () => {
+      current = false;
+    };
+  }, [query, rootPath]);
+
+  useEffect(() => {
+    setActiveResultIndex(0);
+  }, [query, workspaceFiles.length]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -105,17 +161,22 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
-              setActiveCommandIndex(0);
+              setActiveResultIndex(0);
             }}
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {
                 event.preventDefault();
-                moveActiveCommand(1);
+                moveActiveResult(1);
               }
 
               if (event.key === "ArrowUp") {
                 event.preventDefault();
-                moveActiveCommand(-1);
+                moveActiveResult(-1);
+              }
+
+              if (event.key === "Enter") {
+                event.preventDefault();
+                openResult(results[activeResultIndex]);
               }
             }}
             placeholder="Search files, commands..."
@@ -147,15 +208,28 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
         </div>
 
         <div className="max-h-96 overflow-y-auto p-2">
-          {filteredCommands.map((command, index) => {
-            const Icon = command.icon;
-            const isActive = index === activeCommandIndex;
+          {workspaceFiles.length > 0 && (
+            <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-foreground-muted">
+              Files in {rootName}
+            </p>
+          )}
+
+          {results.map((result, index) => {
+            const isActive = index === activeResultIndex;
+            const command = result.type === "command" ? result.command : undefined;
+            const Icon = result.type === "command" ? result.command.icon : FileCode;
+            const title = result.type === "command" ? result.command.title : result.file.name;
+            const description = result.type === "command"
+              ? result.command.description
+              : result.file.relativePath;
+            const key = result.type === "command" ? result.command.id : result.file.path;
 
             return (
               <button
-                key={command.id}
+                key={key}
                 type="button"
-                onMouseEnter={() => setActiveCommandIndex(index)}
+                onClick={() => openResult(result)}
+                onMouseEnter={() => setActiveResultIndex(index)}
                 className={`
                   flex
                   w-full
@@ -175,14 +249,14 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
                 <Icon size={17} className="shrink-0 text-foreground-muted" />
 
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm text-foreground">{command.title}</div>
+                  <div className="text-sm text-foreground">{title}</div>
 
                   <div className="truncate text-xs text-foreground-muted">
-                    {command.description}
+                    {description}
                   </div>
                 </div>
 
-                {command.shortcut && (
+                {command?.shortcut && (
                   <kbd
                     className="
                       rounded
@@ -206,6 +280,16 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
     </>
   );
 }
+
+type WorkspaceFile = {
+  name: string;
+  path: string;
+  relativePath: string;
+};
+
+type PaletteResult =
+  | { type: "file"; file: WorkspaceFile }
+  | { type: "command"; command: (typeof commands)[number] };
 
 function SearchIcon() {
   return (

@@ -1,5 +1,6 @@
 import { dialog } from "electron";
 import fs from "node:fs/promises"
+import type { Dirent } from "node:fs";
 import path from "node:path";
 
 type WorkspaceEntry = {
@@ -7,6 +8,8 @@ type WorkspaceEntry = {
     path: string;
     isDirectory: boolean;
 };
+
+const ignoredDirectoryNames = new Set([".git", "node_modules", "dist", "dist-electron"]);
 
 async function readDirectory(directoryPath: string): Promise<WorkspaceEntry[]> {
     const entries = await fs.readdir(directoryPath, { withFileTypes: true });
@@ -55,6 +58,112 @@ export async function openWorkspace() {
 
 export async function readWorkspaceDirectory(directoryPath: string) {
     return readDirectory(directoryPath);
+}
+
+export async function findWorkspaceFiles(rootPath: string, query: string) {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const files: Array<{ name: string; path: string; relativePath: string }> = [];
+    const maxResults = 100;
+
+    async function visit(directoryPath: string): Promise<void> {
+        if (files.length >= maxResults) {
+            return;
+        }
+
+        let entries: Dirent[];
+        try {
+            entries = await fs.readdir(directoryPath, { withFileTypes: true });
+        } catch {
+            // Dosyaya erişim izni olmayan klasörler aramayı kesmemelidir.
+            return;
+        }
+
+        for (const entry of entries) {
+            if (files.length >= maxResults) {
+                return;
+            }
+
+            const entryPath = path.join(directoryPath, entry.name);
+            if (entry.isDirectory()) {
+                if (!ignoredDirectoryNames.has(entry.name)) {
+                    await visit(entryPath);
+                }
+                continue;
+            }
+
+            if (!entry.isFile()) {
+                continue;
+            }
+
+            const relativePath = path.relative(rootPath, entryPath);
+            if (
+                !normalizedQuery ||
+                entry.name.toLocaleLowerCase().includes(normalizedQuery) ||
+                relativePath.toLocaleLowerCase().includes(normalizedQuery)
+            ) {
+                files.push({ name: entry.name, path: entryPath, relativePath });
+            }
+        }
+    }
+
+    await visit(rootPath);
+    return files.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+}
+
+export async function searchWorkspaceText(rootPath: string, query: string) {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const matches: Array<{ path: string; relativePath: string; line: number; preview: string }> = [];
+    const maxMatches = 200;
+
+    if (!normalizedQuery) {
+        return matches;
+    }
+
+    async function visit(directoryPath: string): Promise<void> {
+        if (matches.length >= maxMatches) return;
+
+        let entries: Dirent[];
+        try {
+            entries = await fs.readdir(directoryPath, { withFileTypes: true });
+        } catch {
+            return;
+        }
+
+        for (const entry of entries) {
+            if (matches.length >= maxMatches) return;
+            const entryPath = path.join(directoryPath, entry.name);
+
+            if (entry.isDirectory()) {
+                if (!ignoredDirectoryNames.has(entry.name)) await visit(entryPath);
+                continue;
+            }
+            if (!entry.isFile()) continue;
+
+            try {
+                const info = await fs.stat(entryPath);
+                if (info.size > 1024 * 1024) continue;
+                const content = await fs.readFile(entryPath, "utf-8");
+                if (content.includes("\0")) continue;
+                const relativePath = path.relative(rootPath, entryPath);
+
+                content.split(/\r?\n/).forEach((sourceLine, index) => {
+                    if (matches.length < maxMatches && sourceLine.toLocaleLowerCase().includes(normalizedQuery)) {
+                        matches.push({
+                            path: entryPath,
+                            relativePath,
+                            line: index + 1,
+                            preview: sourceLine.trim(),
+                        });
+                    }
+                });
+            } catch {
+                // Binary veya erişilemeyen dosyalar atlanır.
+            }
+        }
+    }
+
+    await visit(rootPath);
+    return matches;
 }
 
 export async function readFile(filePath: string) {

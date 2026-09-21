@@ -4,6 +4,7 @@ export type ShortcutId =
   | "toggleTerminal"
   | "newFile"
   | "openFile"
+  | "openFolder"
   | "save"
   | "closeTab"
   | "commandPalette";
@@ -20,6 +21,7 @@ export const DEFAULT_SHORTCUTS: Record<ShortcutId, Shortcut> = {
   toggleTerminal: { key: "j", meta: true },
   newFile: { key: "n", meta: true },
   openFile: { key: "o", meta: true },
+  openFolder: { key: "o", meta: true, shift: true },
   save: { key: "s", meta: true },
   closeTab: { key: "w", meta: true },
   commandPalette: { key: "p", meta: true },

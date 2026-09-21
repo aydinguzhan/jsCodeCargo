@@ -4,10 +4,9 @@ import Terminal from "../terminal/Terminal";
 import EditorEmptyState from "../layout/EditorEmptyState";
 import { useUiStore } from "../../stores/uiStore";
 import { useEditorStore } from "../../stores/editorStore";
-import { useState } from "react";
+import { useWorkspaceStore } from "../../stores/workspaceStore";
 
 export default function Editor() {
-  const [codeOutput, setCodeOutPut] = useState<string[]>([]);
   const tabs = useEditorStore((state) => state.tabs);
   const activeTabId = useEditorStore((state) => state.activeTabId);
   const selectTab = useEditorStore((state) => state.selectTab);
@@ -16,24 +15,28 @@ export default function Editor() {
     (state) => state.updateActiveTabContent,
   );
   const createNewFile = useEditorStore((state) => state.createNewFile);
+  const saveActiveFile = useEditorStore((state) => state.saveActiveFile);
   const terminalOpen = useUiStore((state) => state.terminalOpen);
   const setTerminalOpen = useUiStore((state) => state.setTerminalOpen);
+  const workspacePath = useWorkspaceStore((state) => state.rootPath);
+  const runFileInTerminal = useUiStore((state) => state.runFileInTerminal);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const handleRun = async () => {
     if (!activeTab) {
       return;
     }
-    const result = await window.ipcRenderer.invoke(
-      "terminal:run",
-      `${activeTab.content}`,
-    );
-    setCodeOutPut((prev) => {
-      return [...prev, result?.stdout ?? result?.stdin];
-    });
-  };
-  const handleClearTerminal = () => {
-    setCodeOutPut([]);
+
+    if ((!activeTab.path || activeTab.modified) && !(await saveActiveFile())) {
+      return;
+    }
+
+    const savedTab = useEditorStore
+      .getState()
+      .tabs.find((tab) => tab.id === activeTab.id);
+    if (savedTab?.path) {
+      runFileInTerminal(savedTab.path, workspacePath ?? undefined);
+    }
   };
   const handleChangeTabContent = (value: string | undefined) => {
     if (value === undefined) {
@@ -52,7 +55,7 @@ export default function Editor() {
         onSelectTab={selectTab}
         onCloseTab={closeTab}
         onNewTab={createNewFile}
-        onRun={handleRun}
+        onRun={() => void handleRun()}
       />
 
       {/* Editor Content */}
@@ -71,10 +74,7 @@ export default function Editor() {
       </div>
       {terminalOpen && (
         <Terminal
-          key={codeOutput.length}
           onClose={() => setTerminalOpen(false)}
-          outPut={codeOutput}
-          onReset={handleClearTerminal}
         />
       )}
     </div>

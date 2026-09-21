@@ -129,4 +129,8 @@ body {
   .menu-item:hover {
     @apply bg-surface-soft text-foreground;
   }
+
+  .git-button {
+    @apply flex items-center justify-center gap-1 rounded border border-border bg-surface-soft px-2 py-1.5 text-xs font-medium text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-45;
+  }
 }

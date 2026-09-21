@@ -1,16 +1,19 @@
 import { ChevronDown, ChevronRight, File, Folder, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   type WorkspaceEntry,
   useWorkspaceStore,
 } from "../../stores/workspaceStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useUiStore } from "../../stores/uiStore";
+import GitSidebar from "../git/GitSidebar";
 
 export default function Sidebar() {
   const rootName = useWorkspaceStore((state) => state.rootName);
   const entries = useWorkspaceStore((state) => state.entries);
   const openWorkspace = useWorkspaceStore((state) => state.openWorkspace);
   const openFileFromPath = useEditorStore((state) => state.openFileFromPath);
+  const sidebarView = useUiStore((state) => state.sidebarView);
 
   return (
     <aside
@@ -24,10 +27,24 @@ export default function Sidebar() {
         md:block
       "
     >
-      <div className="border-b border-border px-4 py-2">
+      {sidebarView === "git" ? (
+        <GitSidebar />
+      ) : sidebarView === "search" ? (
+        <WorkspaceSearch onOpenFile={openFileFromPath} />
+      ) : (
+        <>
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <span className="text-xs font-semibold uppercase text-foreground-muted">
           Explorer
         </span>
+        <button
+          type="button"
+          onClick={() => void openWorkspace()}
+          className="rounded px-1.5 py-0.5 text-[11px] font-medium text-foreground-muted transition hover:bg-surface-soft hover:text-foreground"
+          title="Open Folder"
+        >
+          Open Folder
+        </button>
       </div>
 
       {rootName ? (
@@ -54,7 +71,96 @@ export default function Sidebar() {
           </button>
         </div>
       )}
+        </>
+      )}
     </aside>
+  );
+}
+
+type SearchMatch = {
+  path: string;
+  relativePath: string;
+  line: number;
+  preview: string;
+};
+
+function WorkspaceSearch({
+  onOpenFile,
+}: {
+  onOpenFile: (filePath: string) => Promise<boolean>;
+}) {
+  const rootPath = useWorkspaceStore((state) => state.rootPath);
+  const [query, setQuery] = useState("");
+  const [matches, setMatches] = useState<SearchMatch[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!rootPath || !query.trim()) {
+      setMatches([]);
+      setSearching(false);
+      return;
+    }
+
+    let current = true;
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      void window.ipcRenderer
+        .invoke("workspace:search-text", rootPath, query)
+        .then((results: SearchMatch[]) => {
+          if (current) {
+            setMatches(results);
+          }
+        })
+        .catch(() => current && setMatches([]))
+        .finally(() => current && setSearching(false));
+    }, 180);
+
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [query, rootPath]);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-border px-3 py-2">
+        <div className="mb-2 text-xs font-semibold uppercase text-foreground-muted">Search</div>
+        <input
+          autoFocus
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search in files"
+          className="h-8 w-full rounded border border-input-border bg-input px-2 text-xs text-foreground outline-none placeholder:text-foreground-muted focus:border-primary"
+        />
+      </div>
+
+      {!rootPath ? (
+        <p className="px-3 py-4 text-xs text-foreground-muted">Open a folder to search its files.</p>
+      ) : !query.trim() ? (
+        <p className="px-3 py-4 text-xs text-foreground-muted">Type to search across the workspace.</p>
+      ) : searching ? (
+        <p className="px-3 py-4 text-xs text-foreground-muted">Searching…</p>
+      ) : matches.length === 0 ? (
+        <p className="px-3 py-4 text-xs text-foreground-muted">No results found.</p>
+      ) : (
+        <ul className="min-h-0 overflow-y-auto py-1">
+          {matches.map((match) => (
+            <li key={`${match.path}:${match.line}`}>
+              <button
+                type="button"
+                onClick={() => void onOpenFile(match.path)}
+                className="w-full px-3 py-2 text-left transition hover:bg-surface-soft"
+              >
+                <div className="truncate text-xs font-medium text-foreground">{match.relativePath}</div>
+                <div className="truncate text-xs text-foreground-muted">
+                  <span className="mr-1 text-accent">{match.line}:</span>{match.preview}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
